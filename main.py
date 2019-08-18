@@ -1,7 +1,35 @@
 from tkinter import *
+import os
 
 # Constants
 APP_TITLE = "Editor PCB 6.0"
+MANAGER_EXE = "E:\PCB6\MANAGER.EXE"
+EQ_PFK = "E:\PCB6\DBDAT\EQ022022.PKF"
+
+def decToHex(number):
+    return hex(number)[2:].upper()
+
+managerSize = os.stat(MANAGER_EXE).st_size
+eqPKFSize = os.stat(EQ_PFK).st_size
+
+if managerSize == 2619392:
+    if eqPKFSize == 1632501:
+        # Right sizes
+        print("Siguem-hi")
+        eqPKF = open(EQ_PFK, "br")
+        #line = eqPKF.readline()
+        line = eqPKF.read(10)
+        print(decToHex(line[1]))
+    else:
+        # Wrong Teams PKF size
+        print("La mida del PFK d'equips és incorrecta")
+else:
+    # Wrong EXE size
+    print("La mida de l'EXE és incorrecta")
+
+exit()
+
+##########################################################
 
 def fnClose():
     root.destroy() # Destroy window
