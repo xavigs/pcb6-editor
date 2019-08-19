@@ -127,6 +127,11 @@ def fnOnClickSelectFolder():
                 root.listbox.update()
                 scrollbar.place(x = 10 + root.listbox.winfo_width(), y = 58 + lblCountries.winfo_height(), height = 500)
                 root.listbox.configure(yscrollcommand = scrollbar.set)
+
+                # Mini Flag
+                imgFlag = BitmapImage(data = "patches/" + newFolder + "/DBDAT/BANDERAS/MINI/BAN0037.BMP")
+                lblImgFlag = Label(root, image = imgFlag, bg = "#F0F0F0")
+                lblImgFlag.place(x = 10, y = 500)
                 '''
                 eqPKF = open(EQ_PKF, "rb")
                 foundFirst = False
