@@ -6,6 +6,7 @@ from tkinter import *
 from tkinter import ttk, filedialog, messagebox
 import os
 import binascii
+import shutil
 
 # Variables
 DB = []
@@ -15,6 +16,15 @@ maxFolder = -1
 
 def decToHex(number):
     return hex(number)[2:].upper().rjust(2, "0")
+
+def copytree(source, destination, symlinks = False, ignore = None):
+    for item in os.listdir(source):
+        s = os.path.join(source, item)
+        d = os.path.join(destination, item)
+        if os.path.isdir(s):
+            shutil.copytree(s, d, symlinks, ignore)
+        else:
+            shutil.copy2(s, d)
 
 def fnOnClickSelectFolder():
     PCB6FolderShow = filedialog.askdirectory(initialdir = "/", title = "Selecciona la carpeta de instalación del PC Basket 6.0:")
@@ -32,6 +42,7 @@ def fnOnClickSelectFolder():
         global COUNTRIES_ALL
         global COUNTRIES_PLAYERS
         global maxFolder
+        global DB
 
         # Load files and test sizes
         MANAGER_EXE = PCB6Folder + "\\" + MANAGER_EXE
@@ -47,8 +58,29 @@ def fnOnClickSelectFolder():
 
         if managerSize == 2619392:
             if eqPKFSize == 1632501:
-                # Right sizes
-                # Read Countries
+                # Right Sizes
+                # Find last folder in patches
+                for origin, dirs, files in os.walk("patches"):
+                    for folder in dirs:
+                        if folder.isnumeric():
+                            if int(folder) > maxFolder:
+                                maxFolder = int(folder)
+
+                # Create new folders in patches
+                if maxFolder == -1:
+                    newFolder = "000"
+                else:
+                    newFolder = str(maxFolder + 1).rjust(3, "0")
+
+                os.mkdir("patches\\" + newFolder)
+                os.mkdir("patches\\" + newFolder + "\\DBDAT")
+                os.mkdir("patches\\" + newFolder + "\\DBDAT\\BANDERAS")
+                os.mkdir("patches\\" + newFolder + "\\DBDAT\\BANDERAS\\MINI")
+
+                # Copy Mini Flags
+                copytree(PCB6Folder + "\\DBDAT\\BANDERAS\\MINI", "patches\\" + newFolder + "\\DBDAT\\BANDERAS\\MINI")
+
+                # Get Countries
                 countriesPlayers = open(COUNTRIES_PLAYERS, "rb")
                 countryName = ""
                 currentByte = 0
@@ -84,14 +116,16 @@ def fnOnClickSelectFolder():
 
                     currentByte += 1
 
+                DB = sorted(DB, key = lambda user: user['name'])
+
                 for index, country in enumerate(DB):
                     root.listbox.insert((index + 1), country['name'])
 
                 lblCountries.place(x = 10, y = 50)
                 lblCountries.update()
-                root.listbox.place(x = 10, y = 60 + lblCountries.winfo_height(), height = 500)
+                root.listbox.place(x = 10, y = 58 + lblCountries.winfo_height(), height = 500)
                 root.listbox.update()
-                scrollbar.place(x = 10 + root.listbox.winfo_width(), y = 60 + lblCountries.winfo_height(), height = 500)
+                scrollbar.place(x = 10 + root.listbox.winfo_width(), y = 58 + lblCountries.winfo_height(), height = 500)
                 root.listbox.configure(yscrollcommand = scrollbar.set)
                 '''
                 eqPKF = open(EQ_PKF, "rb")
