@@ -3,7 +3,7 @@ import os
 import binascii
 
 # Constants
-APP_TITLE = "Editor PCB 6.0"
+APP_TITLE = "Editor PCB 6.0 v2019 - by Xavi G Sunyer"
 MANAGER_EXE = "E:\PCB6\MANAGER.EXE"
 EQ_PFK = "E:\PCB6\DBDAT\EQ022022.PKF"
 DBCs = []
