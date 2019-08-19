@@ -1,49 +1,27 @@
+import sys
+sys.path.append(r'utils')
+from constants import *
+
 from tkinter import *
 from tkinter import ttk, filedialog, messagebox
 import os
 import binascii
 
-# Constants
-APP_TITLE = "Editor PCB 6.0 v2019 - by Xavi G Sunyer"
-PCB6_FOLDER = ""
-MANAGER_EXE = "MANAGER.EXE"
-EQ_PKF = "DBDAT\\EQ022022.PKF"
-DBCs = []
-HEX_STRING = {"20": "A", "23": "B", "22": "C", "25": "D", "24": "E", "27": "F", "26": "G", "29": "H", "28": "I", "2B": "J",
-            "2A": "K", "2D": "L", "2C": "M", "2F": "N", "2E": "O", "31": "P", "30": "Q", "33": "R", "32": "S", "35": "T",
-            "34": "U", "37": "V", "36": "W", "39": "X", "38": "Y", "3B": "Z",
-            "00": "a", "03": "b", "02": "c", "05": "d", "04": "e", "07": "f", "06": "g", "09": "h", "08": "i", "0B": "j",
-            "0A": "k", "0D": "l", "0C": "m", "0F": "n", "0E": "o", "11": "p", "10": "q", "13": "r", "12": "s", "15": "t",
-            "14": "u", "17": "v", "16": "w", "19": "x", "18": "y", "1B": "z",
-            "80": "á", "88": "é", "8C": "í", "92": "ó", "9B": "ú",
-            "51": "0", "50": "1", "53": "2", "52": "3", "55": "4", "54": "5", "57": "6", "56": "7", "59": "8", "58": "9",
-            "41": " ", "4C": "-", "4F": "."}
-
-# Punters => No sabem quin és el punter de la selecció europea
-POINTERS = [2803, 11, 9900, 8, 9910, 2901, 16, 12, 2402, 1805, 1806, 1807, 1808, 1809, 1303,
-        1813, 7, 101, 4, 17, 14, 13, 15, 104, 2905, 704, 301, 302, 105, 106,
-        801, 901, 902, 903, 904, 1001, 1101, 1002, 1202, 1203, 107, 2902, 102, 2906, 2804,
-        201, 202, 303, 304, 401, 501, 2703, 2704, 2705, 5, 2707, 3, 2709, 2101, 9955,
-        2103, 1216, 1301, 1302, 2802, 1304, 1305, 1306, 1701, 1702, 1703, 1307, 1308, 1309, 1310,
-        1501, 1502, 1503, 1901, 1707, 1801, 1802, 9920, 22, 203, 502, 601, 602, 701, 702,
-        703, 705, 2203, 2204, 2205, 2301, 2004, 2102, 2104, 2706, 2708, 10, 2506, 2512, 2513,
-        2601, 2602, 2701, 2305, 2306, 2401, 2201, 2202, 1, 103, 9, 2801, 2, 2002, 2003,
-        20, 21, 2504, 2505, 1803, 1804, 1705, 1706, 1601, 1704, 1902, 2001, 3001, 18, 6,
-        1204, 1205, 1206, 1207, 1201, 1208, 1209, 1311, 1401, 1402, 1214, 2403, 2501, 2502, 2503,
-        2304, 2302, 2303, 19, 2105, 2903, 2904, 2702, 706, 905, 1812, 9950]
-
 # Variables
+DB = []
+DBCs = []
+PCB6Folder = ""
 maxFolder = -1
 
 def decToHex(number):
     return hex(number)[2:].upper().rjust(2, "0")
 
 def fnOnClickSelectFolder():
-    PCB6Folder = filedialog.askdirectory(initialdir = "/", title = "Selecciona la carpeta de instalación del PC Basket 6.0:")
-    PCB6_FOLDER = PCB6Folder.replace("/", "\\")
+    PCB6FolderShow = filedialog.askdirectory(initialdir = "/", title = "Selecciona la carpeta de instalación del PC Basket 6.0:")
+    PCB6Folder = PCB6FolderShow.replace("/", "\\")
     txtFolder.configure(state = "normal")
     txtFolder.delete(first = 0, last = 500)
-    txtFolder.insert(0, PCB6Folder)
+    txtFolder.insert(0, PCB6FolderShow)
     txtFolder.configure(state = "readonly")
 
     # Load data
@@ -51,11 +29,15 @@ def fnOnClickSelectFolder():
         # Global variables
         global MANAGER_EXE
         global EQ_PKF
+        global COUNTRIES_ALL
+        global COUNTRIES_PLAYERS
         global maxFolder
 
         # Load files and test sizes
-        MANAGER_EXE = PCB6_FOLDER + "\\" + MANAGER_EXE
-        EQ_PKF = PCB6_FOLDER + "\\" + EQ_PKF
+        MANAGER_EXE = PCB6Folder + "\\" + MANAGER_EXE
+        EQ_PKF = PCB6Folder + "\\" + EQ_PKF
+        COUNTRIES_ALL = PCB6Folder + "\\" + COUNTRIES_ALL
+        COUNTRIES_PLAYERS = PCB6Folder + "\\" + COUNTRIES_PLAYERS
         managerSize = os.stat(MANAGER_EXE).st_size
         eqPKFSize = os.stat(EQ_PKF).st_size
         lblImgLoading.place(x = 368, y = 271)
@@ -66,6 +48,52 @@ def fnOnClickSelectFolder():
         if managerSize == 2619392:
             if eqPKFSize == 1632501:
                 # Right sizes
+                # Read Countries
+                countriesPlayers = open(COUNTRIES_PLAYERS, "rb")
+                countryName = ""
+                currentByte = 0
+                numCharsName = 0
+                nextCountry = 18
+                firstByte = nextCountry + 2
+                inCountry = False
+                country = {}
+
+                for byte in countriesPlayers.read():
+                    if currentByte == nextCountry:
+                        # Country found
+                        inCountry = True
+                        numCharsName = byte
+                        lastByte = nextCountry + byte + 1
+                        pointerByte = lastByte + 1
+                    else:
+                        if inCountry and currentByte >= firstByte:
+                            if currentByte <= lastByte:
+                                countryName += HEX_STRING[decToHex(byte)]
+
+                                if currentByte == lastByte:
+                                    country['name'] = countryName
+                            else:
+                                if currentByte == pointerByte:
+                                    country['pointer'] = byte
+                                    inCountry = False
+                                    nextCountry = lastByte + 5
+                                    firstByte = nextCountry + 2
+                                    countryName = ""
+                                    DB.append(country)
+                                    country = {}
+
+                    currentByte += 1
+
+                for index, country in enumerate(DB):
+                    root.listbox.insert((index + 1), country['name'])
+
+                lblCountries.place(x = 10, y = 50)
+                lblCountries.update()
+                root.listbox.place(x = 10, y = 60 + lblCountries.winfo_height(), height = 500)
+                root.listbox.update()
+                scrollbar.place(x = 10 + root.listbox.winfo_width(), y = 60 + lblCountries.winfo_height(), height = 500)
+                root.listbox.configure(yscrollcommand = scrollbar.set)
+                '''
                 eqPKF = open(EQ_PKF, "rb")
                 foundFirst = False
                 foundSecond = False
@@ -131,6 +159,7 @@ def fnOnClickSelectFolder():
                     newDBC = open("patches\\" + newFolder + "\\EQBA" + str(POINTERS[index]).rjust(4, "0") + ".DBC", "wb")
                     newDBC.write(binascii.unhexlify(DBC))
                     newDBC.close()
+                '''
 
                 # Hide Loading image and text
                 lblImgLoading.place_forget()
@@ -155,6 +184,7 @@ bit = root.iconbitmap("editor.ico")
 
 # Fonts
 fntTahoma10 = ("Tahoma", 10)
+fntTahomaBold10 = ("Tahoma", 10, "bold")
 
 # Menu
 menubar = Menu(root)
@@ -196,6 +226,15 @@ lblImgLoading = Label(root, image = imgLoading, bg = "#F0F0F0")
 # Loading Label
 lblLoading = Label(root, text = "Cargando los datos...", font = fntTahoma10)
 lblLoading.update()
+
+# Countries label
+lblCountries = Label(root, text = "Países:", font = fntTahomaBold10)
+
+# Countries listbox
+root.listbox = Listbox(root, exportselection = 0, highlightcolor = "#808080", selectbackground = "#FF4000", selectmode = SINGLE, activestyle = NONE, font = fntTahoma10)
+
+# Scrollbar for countries Listbox
+scrollbar = ttk.Scrollbar(root, orient = VERTICAL, command = root.listbox.yview)
 
 # Show window
 posLeft = int((root.winfo_screenwidth() - 800) / 2 )
