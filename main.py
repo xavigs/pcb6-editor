@@ -7,7 +7,7 @@ import binascii
 APP_TITLE = "Editor PCB 6.0 v2019 - by Xavi G Sunyer"
 PCB6_FOLDER = ""
 MANAGER_EXE = "MANAGER.EXE"
-EQ_PFK = "DBDAT\EQ022022.PKF"
+EQ_PKF = "DBDAT\\EQ022022.PKF"
 DBCs = []
 HEX_STRING = {"20": "A", "23": "B", "22": "C", "25": "D", "24": "E", "27": "F", "26": "G", "29": "H", "28": "I", "2B": "J",
             "2A": "K", "2D": "L", "2C": "M", "2F": "N", "2E": "O", "31": "P", "30": "Q", "33": "R", "32": "S", "35": "T",
@@ -27,71 +27,7 @@ maxFolder = -1
 if managerSize == 2619392:
     if eqPKFSize == 1632501:
         # Right sizes
-        eqPKF = open(EQ_PFK, "rb")
-        #line = eqPKF.readline()
-        #line = eqPKF.read(10)
-        #print(decToHex(line[1]))
-        foundFirst = False
-        foundSecond = False
-        foundTeam = False
-        currentTeam = ""
 
-        for byte in eqPKF.read():
-            if foundTeam:
-                currentTeam += decToHex(byte)
-
-            if decToHex(byte) == "43":
-                foundFirst = True
-            else:
-                if decToHex(byte) == "6F" and foundFirst:
-                    foundSecond = True
-                else:
-                    if decToHex(byte) == "70" and foundSecond:
-                        # Found team
-                        if foundTeam:
-                            currentTeam = currentTeam[:-6]
-                            DBCs.insert(len(DBCs), currentTeam)
-
-                        foundTeam = True
-                        foundFirst = False
-                        foundSecond = False
-                        currentTeam = "436F70"
-                    else:
-                        # Team not found
-                        foundFirst = False
-                        foundSecond = False
-
-        eqPKF.close()
-
-        for root, dirs, files in os.walk("patches"):
-            for folder in dirs:
-                if folder.isnumeric():
-                    if int(folder) > maxFolder:
-                        maxFolder = int(folder)
-
-        if maxFolder == -1:
-            newFolder = "000"
-        else:
-            newFolder = str(maxFolder + 1).rjust(3, "0")
-
-        os.mkdir("patches\\" + newFolder)
-
-        for index, DBC in enumerate(DBCs):
-            numCharsShortName = int(DBC[84:86], 16)
-            currentChar = 88
-            numChars = 0
-            shortName = ""
-
-            while numChars < numCharsShortName:
-                shortName += HEX_STRING[DBC[currentChar:(currentChar + 2)]]
-                numChars += 1
-                currentChar += 2
-
-            print(shortName)
-
-            newDBC = open("patches\\" + newFolder + "\\EQBA" + str(POINTERS[index]).rjust(4, "0") + ".DBC", "wb")
-            newDBC.write(binascii.unhexlify(DBC))
-            newDBC.close()
     else:
         # Wrong Teams PKF size
         print("La mida del PFK d'equips és incorrecta")
@@ -117,15 +53,89 @@ def fnOnClickSelectFolder():
 
     # Load data
     try:
-        managerSize = os.stat(PCB6_FOLDER + "\\" + MANAGER_EXE).st_size
-        eqPKFSize = os.stat(PCB6_FOLDER + "\\" + EQ_PFK).st_size
-        print(managerSize)
-        print(eqPKFSize)
+        # Global variables
+        global MANAGER_EXE
+        global EQ_PKF
+        global maxFolder
+
+        # Load files and test sizes
+        MANAGER_EXE = PCB6_FOLDER + "\\" + MANAGER_EXE
+        EQ_PKF = PCB6_FOLDER + "\\" + EQ_PKF
+        managerSize = os.stat(MANAGER_EXE).st_size
+        eqPKFSize = os.stat(EQ_PKF).st_size
         lblImgLoading.place(x = 368, y = 271)
         lblLoading.place(x = (800 - 128) / 2, y = 346)
 
         if managerSize == 2619392:
             if eqPKFSize == 1632501:
+                # Right sizes
+                eqPKF = open(EQ_PKF, "rb")
+                foundFirst = False
+                foundSecond = False
+                foundTeam = False
+                currentTeam = ""
+
+                for byte in eqPKF.read():
+                    if foundTeam:
+                        currentTeam += decToHex(byte)
+
+                    if decToHex(byte) == "43":
+                        foundFirst = True
+                    else:
+                        if decToHex(byte) == "6F" and foundFirst:
+                            foundSecond = True
+                        else:
+                            if decToHex(byte) == "70" and foundSecond:
+                                # Found team
+                                if foundTeam:
+                                    currentTeam = currentTeam[:-6]
+                                    DBCs.insert(len(DBCs), currentTeam)
+
+                                foundTeam = True
+                                foundFirst = False
+                                foundSecond = False
+                                currentTeam = "436F70"
+                            else:
+                                # Team not found
+                                foundFirst = False
+                                foundSecond = False
+
+                eqPKF.close()
+
+                # Find last folder in patches
+                for root, dirs, files in os.walk("patches"):
+                    for folder in dirs:
+                        if folder.isnumeric():
+                            if int(folder) > maxFolder:
+                                maxFolder = int(folder)
+
+                # Create new folder in patches
+                if maxFolder == -1:
+                    newFolder = "000"
+                else:
+                    newFolder = str(maxFolder + 1).rjust(3, "0")
+
+                os.mkdir("patches\\" + newFolder)
+
+                # Save the DBCs of the teams
+                for index, DBC in enumerate(DBCs):
+                    numCharsShortName = int(DBC[84:86], 16)
+                    currentChar = 88
+                    numChars = 0
+                    shortName = ""
+
+                    while numChars < numCharsShortName:
+                        shortName += HEX_STRING[DBC[currentChar:(currentChar + 2)]]
+                        numChars += 1
+                        currentChar += 2
+
+                    print(shortName)
+
+                    newDBC = open("patches\\" + newFolder + "\\EQBA" + str(POINTERS[index]).rjust(4, "0") + ".DBC", "wb")
+                    newDBC.write(binascii.unhexlify(DBC))
+                    newDBC.close()
+
+                # Hide Loading image and text
                 lblImgLoading.place_forget()
                 lblLoading.place_forget()
             else:
@@ -134,7 +144,8 @@ def fnOnClickSelectFolder():
         else:
             # Wrong EXE size
             messagebox.showerror("MANAGER.EXE incorrecto", "ERROR: El tamaño del MANAGER.EXE es incorrecto.")
-    except FileNotFoundError:
+    except FileNotFoundError as e:
+        print(e)
         messagebox.showerror("Directorio incorrecto", "ERROR: No se han encontrado los archivos adecuados en el directorio seleccionado. Seleccione otro directorio, por favor.")
 
 def fnClose():
